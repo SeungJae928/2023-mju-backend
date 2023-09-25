@@ -37,7 +37,7 @@ int main() {
         numBytes = recvfrom(s, buf2, sizeof(buf2), 0, (struct sockaddr *) &sin, &sin_size);
         cout << "Recevied: " << numBytes << endl;
         cout << "From " << inet_ntoa(sin.sin_addr) << endl;
-        cout << buf << "\n" << endl;
+        cout << buf2 << "\n" << endl;
     }
 
     close(s);
