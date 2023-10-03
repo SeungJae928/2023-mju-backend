@@ -14,15 +14,6 @@ int main() {
     if (s < 0) return 1;
 
     struct sockaddr_in sin;
-    
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons(10115);
-    if (bind(s, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-        cerr << strerror(errno) << endl;
-        return 0;
-    }
 
     string buf;
     while(1) {

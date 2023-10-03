@@ -19,22 +19,13 @@ int main() {
 
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons(10115);
-    if (bind(s, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-        cerr << strerror(errno) << endl;
-        return 0;
-    }
-
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
     sin.sin_port = htons(20115);
     sin.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     int numBytes = sendto(s, buf.c_str(), buf.length(), 0, (struct sockaddr *) &sin, sizeof(sin));
     cout << "Sent: " << numBytes << endl;
 
-    char buf2[65535];
+    char buf2[65536];
     memset(&sin, 0, sizeof(sin));
     socklen_t sin_size = sizeof(sin);
     numBytes = recvfrom(s, buf2, sizeof(buf2), 0, (struct sockaddr *) &sin, &sin_size);
