@@ -34,8 +34,7 @@ int main() {
         cout << "From " << inet_ntoa(sin.sin_addr) << ":" << ntohs(sin.sin_port) << endl;
         cout << "Received buf: " << buf2 << endl;
 
-        // int port = ntohs(sin.sin_port);
-        int port = htons(10002);
+        int port = htons(10115);
 
         string buf = buf2;
         memset(&sin, 0, sizeof(sin));
