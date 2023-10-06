@@ -34,8 +34,10 @@ int main() {
         cout << "From " << inet_ntoa(sin.sin_addr) << ":" << ntohs(sin.sin_port) << endl;
         cout << "Received buf: " << buf2 << endl;
 
-        string buf = buf2;
-        numBytes = sendto(s, buf.c_str(), buf.length(), 0, (struct sockaddr *) &sin, sizeof(sin));
+        char buf[numBytes];
+        strncpy(buf, buf2, numBytes);
+
+        numBytes = sendto(s, buf, sizeof(buf), 0, (struct sockaddr *) &sin, sizeof(sin));
         if(numBytes == -1){
             perror("sendto");
         }
