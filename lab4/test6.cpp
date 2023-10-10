@@ -12,15 +12,13 @@ using namespace std;
 using namespace mju;
 
 const string serialize();
-void deserialize(char* str);
+void deserialize(const char* str, int numBytes);
 
 int main() {
     int s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (s < 0) return 1;
 
     const string se = serialize();
-    
-    string buf = "Hello World1";
 
     struct sockaddr_in sin;
 
@@ -32,14 +30,15 @@ int main() {
     int numBytes = sendto(s, se.c_str(), se.length(), 0, (struct sockaddr *) &sin, sizeof(sin));
     cout << "Sent: " << numBytes << endl;
 
-    char se2[65536];
+    char se2[numBytes];
     memset(&sin, 0, sizeof(sin));
     socklen_t sin_size = sizeof(sin);
     numBytes = recvfrom(s, se2, sizeof(se2), 0, (struct sockaddr *) &sin, &sin_size);
     cout << "Recevied: " << numBytes << endl;
     cout << "From " << inet_ntoa(sin.sin_addr) << endl;
+    cout << "Received buf: " << se2 << endl;
 
-    deserialize(se2);
+    deserialize(se2, numBytes);
 
     close(s);
     return 0;
@@ -58,15 +57,16 @@ const string serialize(){
     phone -> set_number("032-000-0000");
     phone -> set_type(Person::HOME);
 
-    const string s = p -> SerializeAsString();
+    string s = p -> SerializeAsString();
 
     return s;
 }
 
 
-void deserialize(char* str){
+void deserialize(const char* buf, int numBytes){
+    string s(buf, numBytes);
     Person *p2 = new Person;
-    p2 -> ParseFromString(str);
+    p2 -> ParseFromString(s);
     cout << "Name : " << p2 -> name() << endl;
     cout << "ID : " << p2 -> id() << endl;
     for(int i = 0; i < p2->phones_size(); i++){
