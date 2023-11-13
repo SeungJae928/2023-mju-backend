@@ -14,22 +14,38 @@ public class server {
 
     public static int roomSeq = 1;
     public static List<Room> roomList = new ArrayList<>();
-    private static ServerSocket serverSocket;
+    static ServerSocket serverSocket;
+    private static Socket socket;
+    static List<ChatThread> threadList = new ArrayList<>();
+    static boolean state = true;
     
     public static void main(String[] args) throws IOException{
-        List<Thread> threadList = new ArrayList<>();
+        
         int port = 9115;
         serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", port));
       
-        while(true) {
-            Socket socket = serverSocket.accept();
-            ReceiveThread receiveThread = new ReceiveThread(socket);
-            threadList.add(receiveThread);
-            receiveThread.start();
+        try {
+            while(!serverSocket.isClosed()) {
+                socket = serverSocket.accept();
+                ChatThread chatThread = new ChatThread(socket);
+                threadList.add(chatThread);
+                chatThread.start();
+            }
+        } catch (SocketException e) {
+            System.out.println("Server closed");
         }
     }
+
+    public static void shutdownServer() throws IOException{
+        for(ChatThread thread : threadList){
+            thread.interrupt();
+            thread.getMember().getSock().close();
+        }
+        serverSocket.close();;
+    }
 }
+
 
 class Member {
     private final Socket sock;  
@@ -71,7 +87,7 @@ class Member {
     }
 }
 
-// Room class roomId, title, 접속중인 멤버를 담는다.
+
 class Room {
 
     private int roomId;
@@ -118,12 +134,16 @@ class Room {
     }
 }
 
-class ReceiveThread extends Thread {
+class ChatThread extends Thread {
 
     private final Member member;
     
-    public ReceiveThread(Socket socket) {
+    public ChatThread(Socket socket) {
         this.member = new Member(socket);
+    }
+
+    public Member getMember(){
+        return this.member;
     }
 
     @Override
@@ -289,7 +309,7 @@ class ReceiveThread extends Thread {
                     }
                 }
                 if(type.equals("CSShutdown")){                                      // 서버 종료
-                    
+                    server.shutdownServer();
                 }
             }
         } catch (SocketException e1) {
