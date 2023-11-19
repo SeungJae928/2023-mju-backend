@@ -26,6 +26,7 @@ public class server {
     static boolean state = true;
     static int numOfThread = 10;
     static BlockingQueue<ChatThread> taskQueue = new ArrayBlockingQueue<>(numOfThread);
+    private static List<WorkerThread> workerList = new ArrayList<>();
     private static final Lock lock = new ReentrantLock();
     private static final Condition messageCondition = lock.newCondition();
 
@@ -33,7 +34,12 @@ public class server {
         int port = 19115;
         serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", port));
-        new workerThread().start();
+        
+        for(int i = 0; i < numOfThread; i++){
+            WorkerThread t = new WorkerThread();
+            workerList.add(t);
+            t.start();
+        }
       
         try {
             while(!serverSocket.isClosed()) {
@@ -52,7 +58,10 @@ public class server {
             thread.interrupt();
             thread.getMember().getSock().close();
         }
-        serverSocket.close();;
+        for(WorkerThread thread : workerList){
+            thread.interrupt();
+        }
+        serverSocket.close();
     }
 
     public static void addTask(ChatThread client){
@@ -65,7 +74,8 @@ public class server {
         }
     }
 
-    static class workerThread extends Thread {
+    static class WorkerThread extends Thread {
+
         @Override
         public void run() {
             try {
@@ -82,7 +92,7 @@ public class server {
                     }
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.out.println("WorkerThread:" + this.getId() + " Interrupted by /shutdown");
             } catch (IOException e) {
                 e.printStackTrace();
             }
