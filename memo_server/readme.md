@@ -2,30 +2,7 @@
 
 memo.py 는 Python3 Flask 로 되어있습니다.
 
-**본 과제는 실습 서버가 아니라 본인 컴퓨터에서 작업하기 바랍니다.**
 
-# 필요 패키지 설치
-
-필요한 패키지 목록은 `requirements.txt` 에 있습니다. `pip` 을 이용해 필요 패키지를 설치합니다.
-(필요시 `virtualenv` 환경을 이용하세요.)
-
-```
-$ pip install -r requirements.txt
-```
-
-# 실행 예시
-
-일반적인 flask 실행 방식대로 실행하면 됩니다.
-
-```
-$ flask --app memo run --port 포트 번호
-```
-또는
-```
-$ python3 memo.py
-```
-
-후자의 경우 memo.py 안에서 port 번호 5000번을 기본값으로 사용하고 있으니 필요시 수정하세요.
 
 # 동작 설명
 
