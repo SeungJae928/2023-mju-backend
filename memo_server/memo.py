@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 naver_client_id = 'C4Ib26ua2LaF1lbEmhw9'
 naver_client_secret = 'TqYRW_onZn'
-naver_redirect_uri = 'http://localhost:8000/auth'
+naver_redirect_uri = 'http://60212192-lb-1288466503.ap-northeast-2.elb.amazonaws.com/memo/auth'
 '''
     본인 app 의 것으로 교체할 것.
     여기 지정된 url 이 http://localhost:8000/auth 처럼 /auth 인 경우
@@ -21,8 +21,8 @@ naver_redirect_uri = 'http://localhost:8000/auth'
 
 # DB 설정
 connection = mysql.connector.connect(
-        host = 'localhost',
-        port = '3305',
+        host = '43.202.32.183',
+        port = '3306',
         database = 'mjubackend',
         user = 'root',
         password = 'qwe123'
