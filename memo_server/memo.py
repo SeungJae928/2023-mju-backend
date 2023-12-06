@@ -10,6 +10,8 @@ from flask import abort, Flask, make_response, render_template, Response, redire
 
 app = Flask(__name__)
 
+
+
 naver_client_id = 'C4Ib26ua2LaF1lbEmhw9'
 naver_client_secret = 'TqYRW_onZn'
 naver_redirect_uri = 'http://60212192-lb-1288466503.ap-northeast-2.elb.amazonaws.com/memo/auth'
@@ -27,7 +29,7 @@ connection = mysql.connector.connect(
         user = 'root',
         password = 'qwe123'
 )
-cursor = connection.cursor(buffered=True)
+cursor = connection.cursor()
 
 @app.route('/')
 def home():
@@ -43,7 +45,8 @@ def home():
     #       userId 로부터 DB 에서 사용자 이름을 얻어오는 코드를 여기에 작성해야 함
     if userId is not None:
         findNameById(cursor, userId)
-        name = cursor.fetchone()[0]
+        result = cursor.fetchone()[0]
+        name = result if result else None
     ####################################################
 
 
@@ -112,7 +115,7 @@ def onOAuthAuthorizationCodeRedirected():
         addUser(cursor, user_id, user_name)
 
     # 5. 첫 페이지로 redirect 하는데 로그인 쿠키를 설정하고 보내준다.
-    response = redirect('/')
+    response = redirect('/memo/')
     response.set_cookie('userId', user_id)
     return response
 
@@ -122,26 +125,27 @@ def get_memos():
     # 로그인이 안되어 있다면 로그인 하도록 첫 페이지로 redirect 해준다.
     userId = request.cookies.get('userId', default=None)
     if not userId:
-        return redirect('/')
+        return redirect('/memo/')
 
     # TODO: DB 에서 해당 userId 의 메모들을 읽어오도록 아래를 수정한다.
     result = []
     findMemosById(cursor, userId)
-    text = cursor.fetchall()
-    for row in text:
+    data = cursor.fetchall()
+
+    for row in data:
         result.append({
             'text': row[0]
         })
+
     # memos라는 키 값으로 메모 목록 보내주기
     return {'memos': result}
-
 
 @app.route('/memo', methods=['POST'])
 def post_new_memo():
     # 로그인이 안되어 있다면 로그인 하도록 첫 페이지로 redirect 해준다.
     userId = request.cookies.get('userId', default=None)
     if not userId:
-        return redirect('/')
+        return redirect('/memo/')
 
     # 클라이언트로부터 JSON 을 받았어야 한다.
     if not request.is_json:
@@ -151,33 +155,38 @@ def post_new_memo():
     response = request.json
     text = response['text']
     addMemo(cursor, userId, text)
-    #
+
+    return '', HTTPStatus.OK
+
+
+@app.route('/health', methods=['GET'])
+def health_check():
     return '', HTTPStatus.OK
 
 
 def findMemosById(cursor, id):
-    cursor.reset()
+    connection.reconnect()
     query = 'SELECT text FROM memo WHERE user_id=%s'
     cursor.execute(query, (id,))
 
 def findNameById(cursor, id):
-    cursor.reset()
+    connection.reconnect()
     query = 'SELECT name FROM user WHERE id=%s'
     cursor.execute(query, (id,))
 
 def findUserById(cursor, id):
-    cursor.reset()
+    connection.reconnect()
     query = 'SELECT * FROM user WHERE id=%s'
     cursor.execute(query, (id,))
 
 def addUser(cursor, id, name):
-    cursor.reset()
+    connection.reconnect()
     query = 'INSERT INTO user (id, name) VALUES (%s, %s);'
     cursor.execute(query, (id, name))
     connection.commit()
 
 def addMemo(cursor, id, text):
-    cursor.reset()
+    connection.reconnect()
     query = 'INSERT INTO memo (user_id, text) VALUES (%s, %s)'
     cursor.execute(query, (id, text))
     connection.commit()
