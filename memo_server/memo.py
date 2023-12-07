@@ -23,46 +23,27 @@ naver_redirect_uri = 'http://60212192-lb-1288466503.ap-northeast-2.elb.amazonaws
 
 # DB 설정
 connection = mysql.connector.connect(
-        host = '43.202.32.183',
-        port = '3306',
-        database = 'mjubackend',
-        user = 'root',
-        password = 'qwe123'
+        host = '43.202.52.17',         # db 인스턴스 public ip
+        port = '3306',                  # db 사용 포트
+        database = 'mjubackend',        # db 이름
+        user = 'root',                  # mysql user 이름
+        password = 'tmdwo928@@'         # user의 password
 )
-cursor = connection.cursor()
+cursor = connection.cursor()            # db 처리를 위한 cursor
 
 @app.route('/')
 def home():
-    # 쿠기를 통해 이전에 로그인 한 적이 있는지를 확인한다.
-    # 이 부분이 동작하기 위해서는 OAuth 에서 access token 을 얻어낸 뒤
-    # user profile REST api 를 통해 유저 정보를 얻어낸 뒤 'userId' 라는 cookie 를 지정해야 된다.
-    # (참고: 아래 onOAuthAuthorizationCodeRedirected() 마지막 부분 response.set_cookie('userId', user_id) 참고)
     userId = request.cookies.get('userId', default=None)
     name = None
 
-    ####################################################
-    #  TODO: 아래 부분을 채워 넣으시오.
-    #       userId 로부터 DB 에서 사용자 이름을 얻어오는 코드를 여기에 작성해야 함
     if userId is not None:
-        findNameById(cursor, userId)
+        findNameById(cursor, userId)        # 로그인 쿠키가 존재하면 해당 유저의 이름 검색
         result = cursor.fetchone()[0]
         name = result if result else None
-    ####################################################
 
-
-    # 이제 클라에게 전송해 줄 index.html 을 생성한다.
-    # template 로부터 받아와서 name 변수 값만 교체해준다.
     return render_template('index.html', name=name)
 
 
-# 로그인 버튼을 누른 경우 이 API 를 호출한다.
-# OAuth flow 상 브라우저에서 해당 URL 을 바로 호출할 수도 있으나,
-# 브라우저가 CORS (Cross-origin Resource Sharing) 제약 때문에 HTML 을 받아온 서버가 아닌 곳에
-# HTTP request 를 보낼 수 없는 경우가 있다. (예: 크롬 브라우저)
-# 이를 우회하기 위해서 브라우저가 호출할 URL 을 HTML 에 하드코딩하지 않고,
-# 아래처럼 서버가 주는 URL 로 redirect 하는 것으로 처리한다.
-#
-# 주의! 아래 API 는 잘 동작하기 때문에 손대지 말 것
 @app.route('/login')
 def onLogin():
     params={
@@ -76,85 +57,69 @@ def onLogin():
     return redirect(url)
 
 
-# 아래는 Redirect URI 로 등록된 경우 호출된다.
-# 만일 본인의 Redirect URI 가 http://localhost:8000/auth 의 경우처럼 /auth 대신 다른 것을
-# 사용한다면 아래 @app.route('/auth') 의 내용을 그 URL 로 바꿀 것
 @app.route('/auth')
 def onOAuthAuthorizationCodeRedirected():
-    # TODO: 아래 1 ~ 4 를 채워 넣으시오.
-
-    # 1. redirect uri 를 호출한 request 로부터 authorization code 와 state 정보를 얻어낸다.
-    authorization_code = request.args['code']
-    state = request.args['state']
-    params = {
+    authorization_code = request.args['code']   # /login 요청을 통해 받은 code를 가져옴
+    state = request.args['state']               # /login 요청을 통해 받은 state를 가져옴
+    params = {                                  # Access Token 발급 요청을 위한 파라미터
         'grant_type': 'authorization_code',
         'client_id': naver_client_id,
         'client_secret': naver_client_secret,
         'code': authorization_code,
         'state': state
     }
-    urlencoded = urllib.parse.urlencode(params)
-    # 2. authorization code 로부터 access token 을 얻어내는 네이버 API 를 호출한다.
-    url = f'https://nid.naver.com/oauth2.0/token?{urlencoded}'
-    token_request = requests.get(url)
-    token_json = token_request.json()
+    urlencoded = urllib.parse.urlencode(params) # param을 url에 넣기위해 encode
 
-    # 3. 얻어낸 access token 을 이용해서 프로필 정보를 반환하는 API 를 호출하고,
-    #    유저의 고유 식별 번호를 얻어낸다.
-    access_token = token_json.get('access_token')
-    url = 'https://openapi.naver.com/v1/nid/me'
-    header = {'Authorization':f'Bearer {access_token}'}
-    profile_request = requests.get(url, headers=header)
-    profile_json = profile_request.json()
+    url = f'https://nid.naver.com/oauth2.0/token?{urlencoded}'  # Access Token 발급 요청 url
+    token_request = requests.get(url)           # 요청
+    token_json = token_request.json()           # 요청 결과를 json(dict type)으로 변환
 
-    # 4. 얻어낸 user id 와 name 을 DB 에 저장한다.
-    user_id = profile_json.get('response').get('id')
-    user_name = profile_json.get('response').get('name')
-    findUserById(cursor, user_id)
-    if cursor.fetchone() is None:
-        addUser(cursor, user_id, user_name)
+    access_token = token_json.get('access_token')       # 결과에서 access_token을 가져옴
+    url = 'https://openapi.naver.com/v1/nid/me'         # 프로필 조회 요청 url
+    header = {'Authorization':f'Bearer {access_token}'} # 요청에 같이 보낼 Header
+    profile_request = requests.get(url, headers=header) # 요청 
+    profile_json = profile_request.json()               # 요청 결과를 json(dict type)으로 변환
 
-    # 5. 첫 페이지로 redirect 하는데 로그인 쿠키를 설정하고 보내준다.
-    response = redirect('/memo/')
-    response.set_cookie('userId', user_id)
+    user_id = profile_json.get('response').get('id')        # 결과에서 id를 가져옴
+    user_name = profile_json.get('response').get('name')    # 결과에서 name을 가져옴
+    findUserById(cursor, user_id)               # db에 해당 유저가 존재하는지 검색
+    if cursor.fetchone() is None:               
+        addUser(cursor, user_id, user_name)     # 존재하지 않으면 해당 유저 데이터 입력
+
+    response = redirect('/memo/')               # 홈 화면으로 redirect
+    response.set_cookie('userId', user_id)      # 로그인 쿠키 설정
     return response
 
 
 @app.route('/memo', methods=['GET'])
 def get_memos():
-    # 로그인이 안되어 있다면 로그인 하도록 첫 페이지로 redirect 해준다.
     userId = request.cookies.get('userId', default=None)
     if not userId:
         return redirect('/memo/')
 
-    # TODO: DB 에서 해당 userId 의 메모들을 읽어오도록 아래를 수정한다.
     result = []
-    findMemosById(cursor, userId)
-    data = cursor.fetchall()
+    findMemosById(cursor, userId)       # 유저의 id로 등록된 메모들을 cursor에 올림
+    data = cursor.fetchall()            # cursor의 데이터를 가져옴
 
     for row in data:
         result.append({
-            'text': row[0]
+            'text': row[0]              # 각 메모를 {'text':내용} 형식으로 List에 추가
         })
 
-    # memos라는 키 값으로 메모 목록 보내주기
     return {'memos': result}
 
 @app.route('/memo', methods=['POST'])
 def post_new_memo():
-    # 로그인이 안되어 있다면 로그인 하도록 첫 페이지로 redirect 해준다.
     userId = request.cookies.get('userId', default=None)
     if not userId:
         return redirect('/memo/')
 
-    # 클라이언트로부터 JSON 을 받았어야 한다.
     if not request.is_json:
         abort(HTTPStatus.BAD_REQUEST)
 
-    # TODO: 클라이언트로부터 받은 JSON 에서 메모 내용을 추출한 후 DB에 userId 의 메모로 추가한다.
     response = request.json
-    text = response['text']
-    addMemo(cursor, userId, text)
+    text = response['text']             # 클라이언트에서 받은 text를 가져옴
+    addMemo(cursor, userId, text)       # 받은 text와 로그인 쿠키의 유저 id를 데이터베이스에 입력
 
     return '', HTTPStatus.OK
 
